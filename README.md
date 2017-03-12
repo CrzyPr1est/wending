@@ -1,4 +1,4 @@
-Модель вендингового автомата. Серверная часть - ASP.NET 4 WebApi, клиенсткая - HTML + JS + JQuery + Bootstrap.
+Модель вендингового автомата. Серверная часть - ASP.NET 4 WebApi, клиенсткая - HTML + JS + JQuery + Bootstrap, данные - MS SQL.
 
 Данная версия проекта предназначена для запуска из Visual Studio. 
 
