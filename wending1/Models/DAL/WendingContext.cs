@@ -8,6 +8,10 @@ namespace wending1.Models.DAL
 {
     public class WendingContext : DbContext
     {
+        static WendingContext()
+        {
+            Database.SetInitializer<WendingContext>(null);
+        }
         public DbSet<Categories> Categories { get; set; }
         public DbSet<Goods> Goods { get; set; }
         public DbSet<UserWallets> User { get; set; }
