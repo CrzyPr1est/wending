@@ -1,0 +1,251 @@
+﻿<div class="row">
+    <div class="col-xs-4">
+        <h3>Кошелек</h3>
+        <p>Денег:</p>
+        <input type="number" readonly id="userWallet" />
+        <input type="hidden" id="userName" value="def" />
+        <p>1р:</p>
+        <input type="number" readonly size="2" id="coins1" value="0" />
+        <p>2р:</p>
+        <input type="number" readonly size="2" id="coins2" value="0" />
+        <p>5р:</p>
+        <input type="number" readonly size="2" id="coins5" value="0" />
+        <p>10р:</p>
+        <input type="number" readonly size="2" id="coins10" value="0" />
+    </div>
+    <div class="col-xs-4">
+        <h3>Витрина</h3>
+        <div id="store"></div>
+    </div>
+    <div class="col-xs-3">
+
+        <h3>Покупка</h3>
+        <p>Выбрать ячейку:</p>
+        <input type="number" id="cellId" style="width: 50px;" min="1" max="10" value="1" onchange="CurID()"/> <br />
+        <p></p><br />
+        <p>Добавить монеты:</p>
+        <button class="ss" id="button1" value="1" onclick="PutUserWallets.call(this)">1</button>
+        <button class="ss" id="button2" value="2" onclick="PutUserWallets.call(this)">2</button>
+        <button class="ss" id="button5" value="5" onclick="PutUserWallets.call(this)">5</button>
+        <button class="ss" id="button10" value="10" onclick="PutUserWallets.call(this)">10</button>
+        <p></p><br />
+        <p>Внесено денег:</p>
+        <input type="number" style="width: 50px;" readonly class="score" id="sc" value="0" />
+        <br />
+        <input type="button" value="Купить" id="buy" onclick="PutCells()" />
+        <button type="submit" id="getChange" value="20" onclick="PutUserWallets.call(this)">Сдача</button>
+
+        <input type="hidden" id="cellCount" value="0" />
+        <input type="hidden" id="goodsId" value="0" />
+        <input type="hidden" id="price" value="0" />
+
+    </div>
+</div> 
+@section scripts
+{
+    <script type="text/javascript">
+        var uri = 'http://localhost:20909/api/goods';
+        var uri1 = 'http://localhost:20909/api/cells/';
+        var uri2 = 'http://localhost:20909/api/userwallets/'
+        $(document).ready(function () {
+            GetAllCells();
+            GetUserWallets(1);
+        });
+
+        // Заполнение витрины автомата
+        function GetAllCells() {
+            $.ajax({
+                url: uri,
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    WriteResponse(data);
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+            // Формирование таблицы
+            function WriteResponse(cells) {
+                var strResult = "<table class='table-bordered' id='tat'><th>Номер ячейки</th><th>Товар</th><th>Цена</th><th>Доступно</th>";
+                $.each(cells, function (index, cell) {
+                    strResult += "<tr><td class='id'>" + cell.Id + "</td><td>" + cell.Good.Name + "</td><td>"+ cell.Good.Price + "</td><td>" + cell.Count + "</td></tr>";
+                });
+                strResult += "</table>";
+                $("#store").html(strResult);
+            }
+        }
+        // Добавление монет
+        var sum = 0;
+        $('.ss').click(function () {
+            sum = Number(sum) + Number($(this).val());
+            $('.score').val(sum);
+        });
+        $('.score').val(sum);
+
+        function CurID() {
+            GetCells($('#cellId').val());
+        }
+
+        // Покупка
+        function PutCells() {
+            CurID();
+            var id = $('#cellId').val();
+            var cellcount = $('#cellCount').val() - 1;
+            var goodsid = $('#goodsId').val();
+            var cell = {
+                Id: id,
+                Count: cellcount,
+                //Count: 5,
+                GoodsId: goodsid
+                //GoodsId: 1
+            };
+            console.log(cell, $('#price').val(), $('.score').text());
+            if ((parseInt($('.score').val()) >= parseInt($("#price").val())) && (parseInt($("#cellCount").val()) > 0)) {
+                $.ajax({
+                    url: 'http://localhost:20909/api/cells/' + id,
+                    type: 'PUT',
+                    data: JSON.stringify(cell),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (data) {
+                        GetAllCells();
+                    },
+                    error: function (x, y, z) {
+                        alert(x + '\n' + y + '\n' + z);
+                    }
+                });
+                sum = parseInt($('.score').val()) - parseInt($("#price").val());
+                $('.score').val(sum);
+                CurID();
+            }
+            else {
+                alert("ОШИБКА!");
+            }
+        }
+
+        // Загрузка монет 
+        function PutUserWallets() {
+            var coin = parseInt($(this).val());
+            console.log(coin);
+            var coins1 = parseInt($("#coins1").val());
+            var coins2 = parseInt($("#coins2").val());
+            var coins5 = parseInt($("#coins5").val());
+            var coins10 = parseInt($("#coins10").val());
+            switch (coin) {
+                case 1:
+                    coins1 -= 1;
+                    break;
+                case 2:
+                    coins2 -= 1;
+                    break;
+                case 5:
+                    coins5 -= 1;
+                    break;
+                case 10:
+                    coins10 -= 1;
+                    break;
+                case 20: // Получение сдачи
+                    var sdacha = parseInt($(".score").val());
+                    var ost = sdacha;
+                    var coiner = 10;
+                    while (sdacha >= coiner) {
+                        sdacha -= coiner;
+                        coins10 += 1;
+                    };
+                    coiner = parseInt(coiner/2);
+                    while (sdacha >= coiner) {
+                        sdacha -= coiner;
+                        coins5 += 1;
+                    };
+                    coiner = parseInt(coiner / 2);
+                    while (sdacha >= coiner) {
+                        sdacha -= coiner;
+                        coins2 += 1;
+                    };
+                    coiner = parseInt(coiner / 2);
+                    while (sdacha >= coiner) {
+                        sdacha -= coiner;
+                        coins1 += 1;
+                    };
+                    sum = 0;
+                    $('.score').val(sum);
+                    break;
+                default:
+                    alert("No coin!");
+                    break;
+            };
+            var username = $("#userWallet").val();
+            var userwallet = {
+                Id: 1,
+                Name: username,
+                Coins1: coins1,
+                Coins2: coins2,
+                Coins5: coins5,
+                Coins10: coins10
+            };
+            console.log(coins1 + " " + coins2 + " " + coins5 + " " + coins10);
+            $.ajax({
+                url: uri2 + "1",
+                type: 'PUT',
+                data: JSON.stringify(userwallet),
+                contentType: "application/json;charset=utf-8",
+                success: function (data) {
+                    GetUserWallets(1);
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+
+        // Получение нужных данных о ячейке
+        function ShowCells(cells) {
+                $("#cellCount").val(cells.Count);
+                $("#goodsId").val(cells.GoodsId);
+                $("#price").val(cells.Good.Price);
+        }
+
+        //Получение данных о покупателе
+        function ShowUsers(userwallets) {
+            var c1 = userwallets.Coins1;
+            var c2 = userwallets.Coins2;
+            var c5 = userwallets.Coins5;
+            var c10 = userwallets.Coins10;
+            $("#coins1").val(c1);
+            $("#coins2").val(c2);
+            $("#coins5").val(c5);
+            $("#coins10").val(c10);
+            $("#userWallet").val(c1*1 + c2*2 + c5*5 + c10*10);
+        }
+
+        // Запрос на получение выбранной ячейки
+        function GetCells(id) {
+            $.ajax({
+                url: uri1 + id,
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    ShowCells(data);
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+        
+        // Запрос на получение покупателя
+        function GetUserWallets(id) {
+            $.ajax({
+                url: uri2 + id,
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    ShowUsers(data);
+                },
+                error: function (x, y, z) {
+                    alert(x + '\n' + y + '\n' + z);
+                }
+            });
+        }
+    </script>
+    }
